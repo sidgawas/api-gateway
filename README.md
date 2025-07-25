@@ -5,6 +5,7 @@ It uses a JWT-based authentication mechanism and integrates with a Redis cache f
 ## Index
 - [Tech Stack](#tech-stack)
 - [High Level Design](#high-level-design)
+- [Low Level Design](#low-level-design)
 - [Test Results](#test-results)
   - [Unit Tests](#unit-tests)
   - [Concurrency Tests](#concurrency-tests)
@@ -45,10 +46,10 @@ It uses a JWT-based authentication mechanism and integrates with a Redis cache f
 
 ## Low Level Design
 ### Sequence for Authenticated API
-![Sequence Diagram for Authenticated API](doc/HLD-Sequence Diagram of Authenticated Endpoint.drawio.png)
+![Sequence Diagram for Authenticated API](doc/HLD-Sequence%20Diagram%20of%20Authenticated%20Endpoint.drawio.png)
 
 ### Sequence for Un-Authenticated API
-![Sequence Diagram for Un-Authenticated API](doc/HLD-Sequence Diagram of Unauthenticated Endpoint.drawio.png)
+![Sequence Diagram for Un-Authenticated API](doc/HLD-Sequence%20Diagram%20of%20Unauthenticated%20Endpoint.drawio.png)
 
 ### RateLimiterFilter
 The `RateLimiterFilter` is a Spring Web filter that intercepts incoming requests and
