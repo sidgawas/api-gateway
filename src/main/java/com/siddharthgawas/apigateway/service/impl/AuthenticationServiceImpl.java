@@ -29,6 +29,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         this.users = new HashMap<>();
         this.users.put("johndoe", new User("johndoe", passwordEncoder.encode("johndoe"),
                 Collections.emptyList()));
+        this.users.put("janedoe", new User("janedoe", passwordEncoder.encode("janedoe"),
+                Collections.emptyList()));
         this.passwordEncoder = passwordEncoder;
 
 
