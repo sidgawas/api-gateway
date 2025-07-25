@@ -26,7 +26,6 @@ public class JwtAuthenticationFilter extends AbstractAuthenticationProcessingFil
     public JwtAuthenticationFilter(RequestMatcher requiresAuthenticationRequestMatcher,
                                       AuthenticationManager authenticationManager) {
         super(requiresAuthenticationRequestMatcher, authenticationManager);
-        setAuthenticationSuccessHandler(new JWTAuthenticationSuccessHandler());
     }
 
     @Override

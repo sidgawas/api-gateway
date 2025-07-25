@@ -29,16 +29,15 @@ public class RateLimiterFilter extends OncePerRequestFilter {
     private final Function<HttpServletRequest, String> keyExtractor;
 
 
-    public RateLimiterFilter(@NonNull final RateLimitStrategy rateLimitStrategy,
-                             @NonNull final RequestMatcher requestMatcher) {
+    public RateLimiterFilter(final RateLimitStrategy rateLimitStrategy, final RequestMatcher requestMatcher) {
         this.rateLimitStrategy = rateLimitStrategy;
         this.requestMatcher = requestMatcher;
         this.keyExtractor = ServletRequest::getRemoteAddr;
     }
 
-    public RateLimiterFilter(@NonNull final RateLimitStrategy rateLimitStrategy,
-                             @NonNull final RequestMatcher requestMatcher,
-                             @NonNull final Function<HttpServletRequest, String> keyExtractor) {
+    public RateLimiterFilter(final RateLimitStrategy rateLimitStrategy,
+                             final RequestMatcher requestMatcher,
+                             final Function<HttpServletRequest, String> keyExtractor) {
         this.rateLimitStrategy = rateLimitStrategy;
         this.requestMatcher = requestMatcher;
         this.keyExtractor = keyExtractor;
