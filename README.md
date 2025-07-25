@@ -113,13 +113,13 @@ You can run the tests using the following command:
 ```
 Jacoco code coverage report will be generated in `build/reports/jacoco/test/html/index.html`.
 
-[Unit Test Reports](https://sidgawas.github.io/api-gateway/tests/test/)
+[Unit Test Reports](https://sidgawas.github.io/api-gateway/reports/tests/test/)
 
-[Code Coverage Report](https://sidgawas.github.io/api-gateway/jacoco/test/html/)
+[Code Coverage Report](https://sidgawas.github.io/api-gateway/reports/jacoco/test/html/)
 
-[RateLimiterFilter Coverage](https://sidgawas.github.io/api-gateway/jacoco/test/html/com.siddharthgawas.apigateway.ratelimiter/RateLimiterFilter.html)
+[RateLimiterFilter Coverage](https://sidgawas.github.io/api-gateway/reports/jacoco/test/html/com.siddharthgawas.apigateway.ratelimiter/RateLimiterFilter.html)
 
-[TokenBucketRateLimitStrategy Coverage](https://sidgawas.github.io/api-gateway/jacoco/test/html/com.siddharthgawas.apigateway.ratelimiter.impl/TokenBucketRateLimitStrategy.html)
+[TokenBucketRateLimitStrategy Coverage](https://sidgawas.github.io/api-gateway/reports/jacoco/test/html/com.siddharthgawas.apigateway.ratelimiter.impl/TokenBucketRateLimitStrategy.html)
 ### Concurrency Tests
 Concurrency tests are provided to test the rate limiting feature for concurrent bursts of requests for same user
 or from same client IP address. You can run the tests present in `perf_tests` folder using Apache JMeter.
