@@ -14,4 +14,5 @@ public class ApplicationProperties {
     private Long jwtAccessTokenExpirationMs;
     private Long jwtRefreshTokenExpirationMs;
     private String jwtIssuer;
+    private Long maxReqPerMinute;
 }
