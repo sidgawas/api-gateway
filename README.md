@@ -2,6 +2,18 @@
 This project implements an API Gateway in spring boot that provides authentication and rate limiting features.
 It uses a JWT-based authentication mechanism and integrates with a Redis cache for rate limiting.
 
+## Index
+- [Tech Stack](#tech-stack)
+- [High Level Design](#high-level-design)
+- [Test Results](#test-results)
+  - [Unit Tests](#unit-tests)
+  - [Concurrency Tests](#concurrency-tests)
+- [Running Application](#running-application)
+  - [Using Docker](#using-docker)
+  - [Configuration](#configuration)
+  - [Postman Collection](#postman-collection)
+
+
 ## Tech Stack
 1. Java 21
 2. Spring Boot + Web 3.5.4
@@ -39,6 +51,14 @@ You can run the tests using the following command:
 ./gradlew clean test
 ```
 Jacoco code coverage report will be generated in `build/reports/jacoco/test/html/index.html`.
+
+[Unit Test Reports](https://sidgawas.github.io/api-gateway/tests/test/)
+
+[Code Coverage Report](https://sidgawas.github.io/api-gateway/jacoco/test/html/)
+
+[RateLimiterFilter Coverage](https://sidgawas.github.io/api-gateway/jacoco/test/html/com.siddharthgawas.apigateway.ratelimiter/RateLimiterFilter.html)
+
+[TokenBucketRateLimitStrategy Coverage](https://sidgawas.github.io/api-gateway/jacoco/test/html/com.siddharthgawas.apigateway.ratelimiter.impl/TokenBucketRateLimitStrategy.html)
 ### Concurrency Tests
 Concurrency tests are provided to test the rate limiting feature for concurrent bursts of requests for same user
 or from same client IP address. You can run the tests present in `perf_tests` folder using Apache JMeter.
@@ -75,7 +95,7 @@ Please see following table results of concurrency tests:
 |1.75347E+12|Authenticated API -2|200         |Authenticated User Burst Test - API -2 3-3 |TRUE   |
 |1.75347E+12|Authenticated API -2|200         |Authenticated User Burst Test - API -2 3-4 |TRUE   |
 
-## Running the Application
+## Running Application
 ### Using Docker
 Docker compose file is provided to run the application along with Redis.
 This is the recommended way to run the application for development and testing purposes.
