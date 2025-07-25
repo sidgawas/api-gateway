@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JWTServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">api-gateway</a> &gt; <a href="index.source.html" class="el_package">com.siddharthgawas.apigateway.service.impl</a> &gt; <span class="el_source">JWTServiceImpl.java</span></div><h1>JWTServiceImpl.java</h1><pre class="source lang-java linenums">package com.siddharthgawas.apigateway.service.impl;
+
+import com.siddharthgawas.apigateway.configuration.ApplicationProperties;
+import com.siddharthgawas.apigateway.service.JWTService;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import lombok.extern.log4j.Log4j2;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Collections;
+import java.util.Date;
+import java.util.UUID;
+
+@Service
+<span class="fc" id="L20">@Log4j2</span>
+public class JWTServiceImpl implements JWTService {
+
+    private final ApplicationProperties applicationProperties;
+
+    private final SecretKey secretKey;
+
+<span class="fc" id="L27">    public JWTServiceImpl(final ApplicationProperties applicationProperties) {</span>
+<span class="fc" id="L28">        this.applicationProperties = applicationProperties;</span>
+<span class="fc" id="L29">        this.secretKey = Jwts.SIG.HS512.key()</span>
+<span class="fc" id="L30">                .random(new SecureRandom(applicationProperties.getSecret().getBytes(StandardCharsets.UTF_8)))</span>
+<span class="fc" id="L31">                .build();</span>
+<span class="fc" id="L32">    }</span>
+
+    @Override
+    public String generateAccessToken(UserDetails userDetails) {
+<span class="fc" id="L36">        final var currentDate = new Date();</span>
+<span class="fc" id="L37">        final var expirationDate = new Date(currentDate.getTime() + applicationProperties.getJwtAccessTokenExpirationMs());</span>
+<span class="fc" id="L38">        return Jwts.builder().subject(userDetails.getUsername())</span>
+<span class="fc" id="L39">                .issuedAt(currentDate)</span>
+<span class="fc" id="L40">                .id(UUID.randomUUID().toString())</span>
+<span class="fc" id="L41">                .issuer(applicationProperties.getJwtIssuer())</span>
+<span class="fc" id="L42">                .expiration(expirationDate)</span>
+<span class="fc" id="L43">                .signWith(this.secretKey)</span>
+<span class="fc" id="L44">                .compact();</span>
+    }
+
+    @Override
+    public String generateRefreshToken(UserDetails userDetails) {
+<span class="fc" id="L49">        final var currentDate = new Date();</span>
+<span class="fc" id="L50">        final var accessTokenExpirationDate = new Date(currentDate.getTime() +</span>
+<span class="fc" id="L51">                applicationProperties.getJwtAccessTokenExpirationMs());</span>
+<span class="fc" id="L52">        final var expirationDate = new Date(currentDate.getTime() + applicationProperties.getJwtRefreshTokenExpirationMs());</span>
+<span class="fc" id="L53">        final var notBeforeDate = new Date(accessTokenExpirationDate.getTime() - 60*1000*5);</span>
+<span class="fc" id="L54">        return Jwts.builder().subject(userDetails.getUsername())</span>
+<span class="fc" id="L55">                .issuedAt(currentDate)</span>
+<span class="fc" id="L56">                .id(UUID.randomUUID().toString())</span>
+<span class="fc" id="L57">                .notBefore(notBeforeDate)</span>
+<span class="fc" id="L58">                .issuer(applicationProperties.getJwtIssuer())</span>
+<span class="fc" id="L59">                .expiration(expirationDate)</span>
+<span class="fc" id="L60">                .signWith(this.secretKey)</span>
+<span class="fc" id="L61">                .compact();</span>
+    }
+
+
+    @Override
+    public Boolean validateToken(String token) {
+        try {
+<span class="fc" id="L68">            Jwts.parser().verifyWith(secretKey).build()</span>
+<span class="fc" id="L69">                    .parse(token);</span>
+<span class="fc" id="L70">            return true;</span>
+<span class="fc" id="L71">        } catch (JwtException | IllegalArgumentException exception) {</span>
+<span class="fc" id="L72">            log.error(&quot;JWT token is invalid: {}&quot;, exception.getMessage());</span>
+<span class="fc" id="L73">            return false;</span>
+        }
+    }
+
+    @Override
+    public User getUserFromToken(String token) {
+        try {
+<span class="fc" id="L80">            var claims = Jwts.parser().verifyWith(secretKey).build()</span>
+<span class="fc" id="L81">                    .parseSignedClaims(token).getPayload();</span>
+<span class="fc" id="L82">            String username = claims.getSubject();</span>
+<span class="fc" id="L83">            return new User(username, &quot;&quot;, Collections.emptyList());</span>
+<span class="fc" id="L84">        } catch (JwtException | IllegalArgumentException exception) {</span>
+<span class="fc" id="L85">            log.error(&quot;JWT token is invalid: {}&quot;, exception.getMessage());</span>
+<span class="fc" id="L86">            return null;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

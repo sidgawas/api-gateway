@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JWTAuthenticationProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">api-gateway</a> &gt; <a href="index.source.html" class="el_package">com.siddharthgawas.apigateway.security</a> &gt; <span class="el_source">JWTAuthenticationProvider.java</span></div><h1>JWTAuthenticationProvider.java</h1><pre class="source lang-java linenums">package com.siddharthgawas.apigateway.security;
+
+import com.siddharthgawas.apigateway.security.dto.JWTAuthentication;
+import com.siddharthgawas.apigateway.service.JWTService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.stereotype.Component;
+
+import java.util.Objects;
+
+@Component
+<span class="fc" id="L16">@Slf4j</span>
+public class JWTAuthenticationProvider implements AuthenticationProvider {
+
+    private final JWTService jwtService;
+
+    @Autowired
+<span class="fc" id="L22">    public JWTAuthenticationProvider(JWTService jwtService) {</span>
+<span class="fc" id="L23">        this.jwtService = jwtService;</span>
+<span class="fc" id="L24">    }</span>
+
+    @Override
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+<span class="fc bfc" id="L28" title="All 2 branches covered.">        if (authentication instanceof JWTAuthentication jwtAuthentication) {</span>
+<span class="fc" id="L29">            var token = (String) jwtAuthentication.getCredentials();</span>
+<span class="fc" id="L30">            var isTokenValid = jwtService.validateToken(token);</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">            if (!isTokenValid) {</span>
+<span class="fc" id="L32">                log.warn(&quot;Invalid access token received&quot;);</span>
+<span class="fc" id="L33">                throw new AuthenticationServiceException(&quot;Invalid access token&quot;);</span>
+            }
+<span class="fc" id="L35">            var userDetails = jwtService.getUserFromToken(token);</span>
+<span class="fc bfc" id="L36" title="All 2 branches covered.">            if (Objects.isNull(userDetails)) {</span>
+<span class="fc" id="L37">                log.warn(&quot;No user found for the provided access token&quot;);</span>
+<span class="fc" id="L38">                throw new AuthenticationServiceException(&quot;No user found for the provided access token&quot;);</span>
+            }
+<span class="fc" id="L40">            jwtAuthentication.setUserDetails(userDetails);</span>
+<span class="fc" id="L41">            jwtAuthentication.setAuthenticated(true);</span>
+<span class="fc" id="L42">            return jwtAuthentication;</span>
+        }
+<span class="fc" id="L44">        return authentication;</span>
+    }
+
+    @Override
+    public boolean supports(Class&lt;?&gt; authentication) {
+<span class="fc" id="L49">        return JWTAuthentication.class.equals(authentication);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
