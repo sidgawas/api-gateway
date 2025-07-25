@@ -43,6 +43,66 @@ It uses a JWT-based authentication mechanism and integrates with a Redis cache f
 - Rate limiting is implemented at userId/clientIp + API level.
 - Rate limiting is also applied to un-authenticated endpoints to prevent abuse.
 
+## Low Level Design
+### Sequence for Authenticated API
+![Sequence Diagram for Authenticated API](doc/HLD-Sequence Diagram of Authenticated Endpoint.drawio.png)
+
+### Sequence for Un-Authenticated API
+![Sequence Diagram for Un-Authenticated API](doc/HLD-Sequence Diagram of Unauthenticated Endpoint.drawio.png)
+
+### RateLimiterFilter
+The `RateLimiterFilter` is a Spring Web filter that intercepts incoming requests and
+applies rate limiting based on the configured strategy.
+
+### RateLimitStrategy
+The `RateLimitStrategy` interface defines the contract for rate limiting strategies.
+It has a method `isQuotaExceeded` that checks if the request is allowed based on the rate limit configuration.
+
+### TokenBucketRateLimitStrategy
+The `TokenBucketRateLimitStrategy` is an implementation of the `RateLimitStrategy` interface
+that uses the token bucket algorithm for rate limiting. It maintains a token bucket for each user or client IP address
+and allows requests based on the available tokens in the bucket. For handling concurrent requests,
+it uses Redis to store the token bucket state and ensures atomic operations using Redis transactions implemented using
+LUA script.
+
+### JWTAuthenticationFilter
+The `JWTAuthenticationFilter` is a Spring Security filter that intercepts requests to authenticate users
+using JWT tokens. It extracts the token from the `Authorization` header, validates it, and
+sets the authentication in the security context if the token is valid.
+
+### JWTAuthenticationProvider
+The `JWTAuthenticationProvider` is a Spring Security authentication provider that validates JWT tokens.
+It implements the `AuthenticationProvider` interface and checks if the provided token is valid.
+
+### JWTAuthenticationConverter
+The `JWTAuthenticationConverter` is a Spring Security converter that converts JWT tokens into
+`Authentication` objects. It extracts the user details from the token and creates an `Authentication` object
+that can be used by Spring Security.
+
+### JWTAuthentication
+The `JWTAuthentication` class represents the authentication token used in the application.
+It implements the `Authentication` interface and contains the user details extracted from the JWT token.
+
+### JWTService
+The `JWTService` is a service that provides methods to create and validate JWT tokens.
+It uses the `java-jwt` library to create tokens and validate them.
+It also provides methods to extract user details from the token.
+
+### AuthenticationService
+The `AuthenticationService` is a service that provides methods to authenticate users and generate JWT tokens.
+It uses the `JWTService` to create tokens and validate them.
+It also provides methods to refresh tokens using the refresh token.
+
+### AuthenticationController
+The `AuthenticationController` is a Spring REST controller that provides endpoints for user authentication.
+It has endpoints to create tokens and refresh tokens. It uses the `AuthenticationService` to handle
+authentication logic. These endpoints are un-authenticated and rate limited to prevent abuse.
+
+### CatchAllController
+The `CatchAllController` is a Spring REST controller that handles all other requests that are not
+handled by the authentication controller. This is useful for ensuring that all requests go through the API gateway.
+These APIs are authenticated and rate limited based on the user ID extracted from the JWT token.
+
 ## Test Results
 ### Unit Tests
 Unit tests are provided for the application using JUNIT 5.
