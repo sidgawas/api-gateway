@@ -2,7 +2,7 @@
 FROM gradle:8.14.3-jdk21-alpine AS build
 WORKDIR /app
 COPY --chown=gradle:gradle . .
-RUN gradle build -x test
+RUN gradle build
 
 # ---- Package Stage ----
 FROM eclipse-temurin:21-jre-alpine
