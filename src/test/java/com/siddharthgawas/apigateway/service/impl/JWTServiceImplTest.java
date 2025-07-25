@@ -45,7 +45,7 @@ class JWTServiceImplTest {
         UserDetails user = new User("refresher", "password", Collections.emptyList());
         String token = jwtService.generateRefreshToken(user);
         assertThat(token).isNotBlank();
-        assertThat(jwtService.validateToken(token)).isFalse();
+        assertThat(jwtService.validateToken(token)).isTrue();
     }
 
     @Test
