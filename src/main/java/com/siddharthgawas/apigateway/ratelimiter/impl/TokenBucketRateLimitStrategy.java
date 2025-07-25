@@ -4,49 +4,55 @@ import com.siddharthgawas.apigateway.ratelimiter.RateLimitStrategy;
 import com.siddharthgawas.apigateway.ratelimiter.dto.RateLimitProps;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 
-import java.time.Duration;
+import java.util.List;
 
 @Slf4j
 public class TokenBucketRateLimitStrategy implements RateLimitStrategy {
 
-    private static final  int WINDOW_SIZE = 60; // seconds
+    private static final String LUA_SCRIPT = """
+            local tokens = tonumber(redis.call('get', KEYS[1]))
+            local lastRefill = tonumber(redis.call('get', KEYS[2]))
+            local currentTime = tonumber(ARGV[1])
+            if not tokens or not lastRefill then
+                tokens = ARGV[2]
+                lastRefill = currentTime
+                redis.call('set', KEYS[1], tokens, 'EX', ARGV[3])
+                redis.call('set', KEYS[2], lastRefill, 'EX', ARGV[3])
+            end
+            local isQuotaExceeded = tonumber(tokens) <= 0
+            if not isQuotaExceeded then
+                redis.call('decr', KEYS[1])
+                return 0
+            end
+            return 1
+            """;
+
+    private static final int WINDOW_SIZE = 60; // seconds
 
     private final RedisTemplate<String, Number> redisTemplate;
 
     private final Long maxTokenPerMinute;
 
-    private final Float refillRate;
-
 
     public TokenBucketRateLimitStrategy(RedisTemplate<String, Number> redisTemplate, Long maxTokenPerMinute) {
         this.redisTemplate = redisTemplate;
         this.maxTokenPerMinute = maxTokenPerMinute;
-        this.refillRate = ((float)maxTokenPerMinute) / WINDOW_SIZE; // tokens per second
     }
 
     @Override
     public Boolean isQuotaExceeded(final RateLimitProps rateLimitProps) {
-        var key = rateLimitProps.getKey();
-        var requestPath = rateLimitProps.getRequestPath();
-        var tokenKey = key + ":" + requestPath + ":tokens";
-        var lastRefillKey = key + ":" + requestPath + ":lastRefill";
-        var tokens = redisTemplate.opsForValue().get(tokenKey);
-        var lastRefill = redisTemplate.opsForValue().get(lastRefillKey);
-        log.info("Checking rate limit for key: {}, requestPath: {}, tokens: {}, lastRefill: {}",
-                 key, requestPath, tokens, lastRefill);
-        var currentTime = System.currentTimeMillis();
-        if (tokens == null || lastRefill == null) {
-            tokens = this.maxTokenPerMinute;
-            lastRefill = currentTime;
-            redisTemplate.opsForValue().set(tokenKey, tokens, Duration.ofSeconds(WINDOW_SIZE));
-            redisTemplate.opsForValue().set(lastRefillKey, lastRefill, Duration.ofSeconds(WINDOW_SIZE));
-        }
-        var isQuotaExceeded = tokens.longValue() <= 0;
-        if (!isQuotaExceeded) {
-            redisTemplate.opsForValue().decrement(tokenKey);
-        }
-        return isQuotaExceeded;
+        final String key = rateLimitProps.getKey() + ":" + rateLimitProps.getRequestPath();
+        final String tokenCountKey = key + ":tokens";
+        final String lastRefillKey = key + ":lastRefill";
+        final long currentTime = System.currentTimeMillis() / 1000; // Current time in seconds
+        Long result = redisTemplate.execute(new DefaultRedisScript<>(LUA_SCRIPT, Long.class),
+                List.of(tokenCountKey, lastRefillKey),
+                currentTime,
+                maxTokenPerMinute,
+                WINDOW_SIZE);
+        return result == 1L;
     }
 
 }
