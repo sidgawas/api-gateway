@@ -66,7 +66,7 @@ public class SecurityConfiguration {
 
     @Bean
     public SecurityFilterChain filterChain(final HttpSecurity http,
-                                           final RedisTemplate<String, Number> redisTemplate,
+                                           final RedisTemplate<String, Object> redisTemplate,
                                            final AuthenticationManager authenticationManager) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
@@ -98,13 +98,13 @@ public class SecurityConfiguration {
         return filter;
     }
 
-    private RateLimiterFilter getRequestRateLimiterForAuthenticatedRequests(final RedisTemplate<String, Number> redisTemplate) {
+    private RateLimiterFilter getRequestRateLimiterForAuthenticatedRequests(final RedisTemplate<String, Object> redisTemplate) {
         return new RateLimiterFilter(getTokenRateLimitStrategy(redisTemplate),
                 new NegatedRequestMatcher(unauthenticatedRequestMatcher),
                 getUserIDKeyExtractor());
     }
 
-    private RateLimiterFilter getRequestRateLimiterForUnauthenticatedRequests(final RedisTemplate<String, Number> redisTemplate) {
+    private RateLimiterFilter getRequestRateLimiterForUnauthenticatedRequests(final RedisTemplate<String, Object> redisTemplate) {
         return new RateLimiterFilter(getTokenRateLimitStrategy(redisTemplate), unauthenticatedRequestMatcher);
     }
 
@@ -119,7 +119,7 @@ public class SecurityConfiguration {
                 .orElse(null);
     }
 
-    private RateLimitStrategy getTokenRateLimitStrategy(final RedisTemplate<String, Number> redisTemplate) {
+    private RateLimitStrategy getTokenRateLimitStrategy(final RedisTemplate<String, Object> redisTemplate) {
         return new TokenBucketRateLimitStrategy(redisTemplate, applicationProperties.getMaxReqPerMinute());
     }
 

@@ -31,12 +31,12 @@ public class TokenBucketRateLimitStrategy implements RateLimitStrategy {
 
     private static final int WINDOW_SIZE = 60; // seconds
 
-    private final RedisTemplate<String, Number> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     private final Long maxTokenPerMinute;
 
 
-    public TokenBucketRateLimitStrategy(RedisTemplate<String, Number> redisTemplate, Long maxTokenPerMinute) {
+    public TokenBucketRateLimitStrategy(RedisTemplate<String, Object> redisTemplate, Long maxTokenPerMinute) {
         this.redisTemplate = redisTemplate;
         this.maxTokenPerMinute = maxTokenPerMinute;
     }
