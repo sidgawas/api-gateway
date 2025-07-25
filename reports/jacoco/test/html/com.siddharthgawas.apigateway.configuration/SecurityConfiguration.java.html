@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">api-gateway</a> &gt; <a href="index.source.html" class="el_package">com.siddharthgawas.apigateway.configuration</a> &gt; <span class="el_source">SecurityConfiguration.java</span></div><h1>SecurityConfiguration.java</h1><pre class="source lang-java linenums">package com.siddharthgawas.apigateway.configuration;
+
+import com.siddharthgawas.apigateway.controller.AuthenticationController;
+import com.siddharthgawas.apigateway.ratelimiter.RateLimitStrategy;
+import com.siddharthgawas.apigateway.ratelimiter.RateLimiterFilter;
+import com.siddharthgawas.apigateway.ratelimiter.impl.TokenBucketRateLimitStrategy;
+import com.siddharthgawas.apigateway.security.JWTAuthenticationConverter;
+import com.siddharthgawas.apigateway.security.JWTAuthenticationProvider;
+import com.siddharthgawas.apigateway.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+
+import java.security.Principal;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+/**
+ * Security configuration for the API Gateway.
+ * &lt;p&gt;
+ * This class configures security settings, including authentication and authorization,
+ * using JWT tokens and Redis for rate limiting.
+ */
+@Configuration
+@EnableWebSecurity
+<span class="fc" id="L47">public class SecurityConfiguration {</span>
+
+    @Autowired
+    private ApplicationProperties applicationProperties;
+
+    /**
+     * Request matcher for unauthenticated requests.
+     * &lt;p&gt;
+     * This matcher allows access to the token endpoint, token refresh endpoint, and error endpoint
+     * without authentication.
+     */
+<span class="fc" id="L58">    private final RequestMatcher unauthenticatedRequestMatcher = new OrRequestMatcher(</span>
+<span class="fc" id="L59">            PathPatternRequestMatcher.withDefaults()</span>
+<span class="fc" id="L60">                    .matcher(AuthenticationController.TOKEN_ENDPOINT),</span>
+<span class="fc" id="L61">            PathPatternRequestMatcher.withDefaults()</span>
+<span class="fc" id="L62">                    .matcher(AuthenticationController.TOKEN_REFRESH_ENDPOINT),</span>
+<span class="fc" id="L63">            PathPatternRequestMatcher.withDefaults()</span>
+<span class="fc" id="L64">                    .matcher(&quot;/error&quot;)</span>
+    );
+
+    /**
+     * Password encoder bean for encoding passwords.
+     * &lt;p&gt;
+     * This bean uses BCrypt for password encoding, which is a strong hashing algorithm.
+     *
+     * @return the password encoder
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+<span class="fc" id="L76">        return new BCryptPasswordEncoder();</span>
+    }
+
+    /**
+     * Authentication provider for JWT authentication.
+     * &lt;p&gt;
+     * This bean is responsible for authenticating users based on JWT tokens.
+     *
+     * @return the JWT authentication provider
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(final JWTAuthenticationProvider authenticationProvider) {
+<span class="fc" id="L88">        final var providerManager = new ProviderManager(authenticationProvider);</span>
+<span class="fc" id="L89">        providerManager.setEraseCredentialsAfterAuthentication(true);</span>
+<span class="fc" id="L90">        return providerManager;</span>
+    }
+
+    /**
+     * Security filter chain bean for configuring security settings.
+     * &lt;p&gt;
+     * This method configures HTTP security, including CSRF protection, session management,
+     * exception handling, and filters for JWT authentication and rate limiting.
+     *
+     * @param http the HttpSecurity object
+     * @param redisTemplate the RedisTemplate for rate limiting
+     * @param authenticationManager the authentication manager
+     * @return the configured SecurityFilterChain
+     * @throws Exception if an error occurs during configuration
+     */
+    @Bean
+    public SecurityFilterChain filterChain(final HttpSecurity http,
+                                           final RedisTemplate&lt;String, Object&gt; redisTemplate,
+                                           final AuthenticationManager authenticationManager) throws Exception {
+<span class="fc" id="L109">        http.csrf(AbstractHttpConfigurer::disable)</span>
+<span class="fc" id="L110">                .authorizeHttpRequests(authorize -&gt; authorize</span>
+<span class="fc" id="L111">                        .requestMatchers(unauthenticatedRequestMatcher).permitAll()</span>
+<span class="fc" id="L112">                        .anyRequest().authenticated()</span>
+                )
+<span class="fc" id="L114">                .sessionManagement(session -&gt; session</span>
+<span class="fc" id="L115">                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)</span>
+                )
+<span class="fc" id="L117">                .exceptionHandling(customizer -&gt; {</span>
+<span class="fc" id="L118">                    customizer.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED));</span>
+<span class="fc" id="L119">                })</span>
+<span class="fc" id="L120">                .addFilterBefore(jwtAuthenticationFilter(authenticationManager),</span>
+                        UsernamePasswordAuthenticationFilter.class)
+<span class="fc" id="L122">                .addFilterAfter(getRequestRateLimiterForAuthenticatedRequests(redisTemplate),</span>
+                        JwtAuthenticationFilter.class)
+<span class="fc" id="L124">                .addFilterAfter(getRequestRateLimiterForUnauthenticatedRequests(redisTemplate),</span>
+                        JwtAuthenticationFilter.class)
+<span class="fc" id="L126">                .authenticationManager(authenticationManager);</span>
+<span class="fc" id="L127">        return http.build();</span>
+    }
+
+    /**
+     * JWT authentication filter bean.
+     * &lt;p&gt;
+     * This filter intercepts requests to authenticate users based on JWT tokens.
+     *
+     * @param authenticationManager the authentication manager
+     * @return the JWT authentication filter
+     */
+    private JwtAuthenticationFilter jwtAuthenticationFilter(final AuthenticationManager authenticationManager) {
+<span class="fc" id="L139">        final var filter = new JwtAuthenticationFilter(</span>
+                new NegatedRequestMatcher(unauthenticatedRequestMatcher),
+                authenticationManager
+        );
+<span class="fc" id="L143">        filter.setAuthenticationConverter(new JWTAuthenticationConverter());</span>
+<span class="fc" id="L144">        return filter;</span>
+    }
+
+    /**
+     * Rate limiter filter for authenticated requests.
+     * &lt;p&gt;
+     * This filter applies rate limiting to authenticated requests using a token bucket strategy.
+     *
+     * @param redisTemplate the RedisTemplate for rate limiting
+     * @return the rate limiter filter for authenticated requests
+     */
+    private RateLimiterFilter getRequestRateLimiterForAuthenticatedRequests(final RedisTemplate&lt;String, Object&gt; redisTemplate) {
+<span class="fc" id="L156">        return new RateLimiterFilter(getTokenRateLimitStrategy(redisTemplate),</span>
+                new NegatedRequestMatcher(unauthenticatedRequestMatcher),
+<span class="fc" id="L158">                getUserIDKeyExtractor());</span>
+    }
+
+    /**
+     * Rate limiter filter for unauthenticated requests.
+     * &lt;p&gt;
+     * This filter applies rate limiting to unauthenticated requests using a token bucket strategy.
+     *
+     * @param redisTemplate the RedisTemplate for rate limiting
+     * @return the rate limiter filter for unauthenticated requests
+     */
+    private RateLimiterFilter getRequestRateLimiterForUnauthenticatedRequests(final RedisTemplate&lt;String, Object&gt; redisTemplate) {
+<span class="fc" id="L170">        return new RateLimiterFilter(getTokenRateLimitStrategy(redisTemplate), unauthenticatedRequestMatcher);</span>
+    }
+
+    /**
+     * Extracts the user ID from the security context for rate limiting.
+     * &lt;p&gt;
+     * This method uses a custom key extractor to retrieve the user ID from the security context.
+     *
+     * @return a function that extracts the user ID from the HttpServletRequest
+     */
+    private Function&lt;HttpServletRequest, String&gt; getUserIDKeyExtractor() {
+<span class="fc" id="L181">        final var securityContextRepository = new RequestAttributeSecurityContextRepository();</span>
+        // Use a custom key extractor to get the user-id from the security context
+<span class="fc" id="L183">        return request -&gt; Optional</span>
+<span class="nc" id="L184">                .of(securityContextRepository.loadDeferredContext(request))</span>
+<span class="nc" id="L185">                .map(Supplier::get)</span>
+<span class="nc" id="L186">                .map(SecurityContext::getAuthentication)</span>
+<span class="nc" id="L187">                .map(Principal::getName)</span>
+<span class="nc" id="L188">                .orElse(null);</span>
+    }
+
+    /**
+     * Token bucket rate limit strategy for Redis.
+     * &lt;p&gt;
+     * This method creates a token bucket rate limit strategy using Redis to manage request limits.
+     *
+     * @param redisTemplate the RedisTemplate for rate limiting
+     * @return the token bucket rate limit strategy
+     */
+    private RateLimitStrategy getTokenRateLimitStrategy(final RedisTemplate&lt;String, Object&gt; redisTemplate) {
+<span class="fc" id="L200">        return new TokenBucketRateLimitStrategy(redisTemplate, applicationProperties.getMaxReqPerMinute());</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

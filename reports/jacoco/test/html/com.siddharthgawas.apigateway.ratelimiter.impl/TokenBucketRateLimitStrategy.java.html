@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TokenBucketRateLimitStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">api-gateway</a> &gt; <a href="index.source.html" class="el_package">com.siddharthgawas.apigateway.ratelimiter.impl</a> &gt; <span class="el_source">TokenBucketRateLimitStrategy.java</span></div><h1>TokenBucketRateLimitStrategy.java</h1><pre class="source lang-java linenums">package com.siddharthgawas.apigateway.ratelimiter.impl;
+
+import com.siddharthgawas.apigateway.ratelimiter.RateLimitStrategy;
+import com.siddharthgawas.apigateway.ratelimiter.dto.RateLimitProps;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+
+import java.util.List;
+
+/**
+ * TokenBucketRateLimitStrategy implements a token bucket algorithm for rate limiting.
+ * &lt;p&gt;
+ * This strategy uses Redis to manage the token count and refill time, allowing for
+ * a specified number of requests per minute.
+ */
+<span class="fc" id="L17">@Slf4j</span>
+public class TokenBucketRateLimitStrategy implements RateLimitStrategy {
+
+    private static final String LUA_SCRIPT = &quot;&quot;&quot;
+            local tokens = tonumber(redis.call('get', KEYS[1]))
+            local lastRefill = tonumber(redis.call('get', KEYS[2]))
+            local currentTime = tonumber(ARGV[1])
+            if not tokens or not lastRefill then
+                tokens = ARGV[2]
+                lastRefill = currentTime
+                redis.call('set', KEYS[1], tokens, 'EX', ARGV[3])
+                redis.call('set', KEYS[2], lastRefill, 'EX', ARGV[3])
+            end
+            local isQuotaExceeded = tonumber(tokens) &lt;= 0
+            if not isQuotaExceeded then
+                redis.call('decr', KEYS[1])
+                return 0
+            end
+            return 1
+            &quot;&quot;&quot;;
+
+    private static final int WINDOW_SIZE = 60; // seconds
+
+    private final RedisTemplate&lt;String, Object&gt; redisTemplate;
+
+    private final Long maxTokenPerMinute;
+
+
+<span class="fc" id="L45">    public TokenBucketRateLimitStrategy(RedisTemplate&lt;String, Object&gt; redisTemplate, Long maxTokenPerMinute) {</span>
+<span class="fc" id="L46">        this.redisTemplate = redisTemplate;</span>
+<span class="fc" id="L47">        this.maxTokenPerMinute = maxTokenPerMinute;</span>
+<span class="fc" id="L48">    }</span>
+
+    /**
+     * Checks if the quota is exceeded for the given rate limit properties.
+     *
+     * @param rateLimitProps The properties containing the key and request path for rate limiting.
+     * @return true if the quota is exceeded, false otherwise.
+     */
+    @Override
+    public Boolean isQuotaExceeded(final RateLimitProps rateLimitProps) {
+<span class="fc" id="L58">        final String key = rateLimitProps.getKey() + &quot;:&quot; + rateLimitProps.getRequestPath();</span>
+<span class="fc" id="L59">        final String tokenCountKey = key + &quot;:tokens&quot;;</span>
+<span class="fc" id="L60">        final String lastRefillKey = key + &quot;:lastRefill&quot;;</span>
+<span class="fc" id="L61">        final long currentTime = System.currentTimeMillis() / 1000; // Current time in seconds</span>
+<span class="fc" id="L62">        Long result = redisTemplate.execute(new DefaultRedisScript&lt;&gt;(LUA_SCRIPT, Long.class),</span>
+<span class="fc" id="L63">                List.of(tokenCountKey, lastRefillKey),</span>
+<span class="fc" id="L64">                currentTime,</span>
+                maxTokenPerMinute,
+<span class="fc" id="L66">                WINDOW_SIZE);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        return result == 1L;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

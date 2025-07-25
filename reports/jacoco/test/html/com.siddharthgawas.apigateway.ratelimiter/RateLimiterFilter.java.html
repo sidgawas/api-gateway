@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RateLimiterFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">api-gateway</a> &gt; <a href="index.source.html" class="el_package">com.siddharthgawas.apigateway.ratelimiter</a> &gt; <span class="el_source">RateLimiterFilter.java</span></div><h1>RateLimiterFilter.java</h1><pre class="source lang-java linenums">package com.siddharthgawas.apigateway.ratelimiter;
+
+import com.siddharthgawas.apigateway.ratelimiter.dto.RateLimitProps;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.NonNull;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.function.Function;
+
+/**
+ * Filter for rate limiting requests based on a specified strategy.
+ * &lt;p&gt;
+ * This filter checks if the rate limit for a request has been exceeded and
+ * responds with an appropriate HTTP status code if the limit is reached.
+ */
+public class RateLimiterFilter extends OncePerRequestFilter {
+
+<span class="fc" id="L28">    private final SecurityContextRepository securityContextRepository =</span>
+            new RequestAttributeSecurityContextRepository();
+
+    private final RateLimitStrategy rateLimitStrategy;
+
+    private final RequestMatcher requestMatcher;
+
+    private final Function&lt;HttpServletRequest, String&gt; keyExtractor;
+
+
+    /**
+     * Constructs a RateLimiterFilter with the specified rate limit strategy and request matcher.
+     *
+     * @param rateLimitStrategy the strategy to use for rate limiting
+     * @param requestMatcher    the matcher to determine which requests to filter
+     */
+<span class="fc" id="L44">    public RateLimiterFilter(final RateLimitStrategy rateLimitStrategy, final RequestMatcher requestMatcher) {</span>
+<span class="fc" id="L45">        this.rateLimitStrategy = rateLimitStrategy;</span>
+<span class="fc" id="L46">        this.requestMatcher = requestMatcher;</span>
+<span class="fc" id="L47">        this.keyExtractor = ServletRequest::getRemoteAddr;</span>
+<span class="fc" id="L48">    }</span>
+
+    /**
+     * Constructs a RateLimiterFilter with the specified rate limit strategy, request matcher,
+     * and key extractor function.
+     *
+     * @param rateLimitStrategy the strategy to use for rate limiting
+     * @param requestMatcher    the matcher to determine which requests to filter
+     * @param keyExtractor      function to extract the key from the request
+     */
+    public RateLimiterFilter(final RateLimitStrategy rateLimitStrategy,
+                             final RequestMatcher requestMatcher,
+<span class="fc" id="L60">                             final Function&lt;HttpServletRequest, String&gt; keyExtractor) {</span>
+<span class="fc" id="L61">        this.rateLimitStrategy = rateLimitStrategy;</span>
+<span class="fc" id="L62">        this.requestMatcher = requestMatcher;</span>
+<span class="fc" id="L63">        this.keyExtractor = keyExtractor;</span>
+<span class="fc" id="L64">    }</span>
+
+
+    /**
+     * Filters incoming requests to apply rate limiting.
+     * &lt;p&gt;
+     * This method checks if the request matches the specified request matcher and
+     * applies the rate limit strategy. If the rate limit is exceeded, it responds
+     * with a 429 Too Many Requests status; otherwise, it allows the request to proceed.
+     *
+     * @param request  the HttpServletRequest to filter
+     * @param response the HttpServletResponse to write the response to
+     * @param filterChain the filter chain to continue processing the request
+     * @throws ServletException if an error occurs during filtering
+     * @throws IOException      if an I/O error occurs
+     */
+    @Override
+    protected void doFilterInternal(final HttpServletRequest request,
+                                    final HttpServletResponse response,
+                                    final FilterChain filterChain) throws ServletException, IOException {
+<span class="fc" id="L84">        final var requestPath = request.getRequestURI();</span>
+<span class="fc" id="L85">        final var key = keyExtractor.apply(request);</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (!StringUtils.hasLength(key)) {</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">            if (!response.isCommitted()) {</span>
+<span class="fc" id="L88">                response.setStatus(HttpStatus.UNAUTHORIZED.value());</span>
+<span class="fc" id="L89">                response.getWriter().write(&quot;Unauthorized access. Please provide valid credentials.&quot;);</span>
+            }
+<span class="fc" id="L91">            return;</span>
+        }
+<span class="fc" id="L93">        final var isQuotaExhausted = rateLimitStrategy.isQuotaExceeded(new RateLimitProps(key, requestPath));</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if (isQuotaExhausted) {</span>
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">            if (!response.isCommitted()) {</span>
+<span class="fc" id="L96">                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());</span>
+<span class="fc" id="L97">                response.getWriter().write(&quot;Rate limit exceeded. Please try again later.&quot;);</span>
+            }
+        } else {
+<span class="fc" id="L100">            filterChain.doFilter(request, response);</span>
+        }
+<span class="fc" id="L102">    }</span>
+
+    /**
+     * Determines whether the filter should be applied to the request.
+     * &lt;p&gt;
+     * This method checks if the request matches the specified request matcher.
+     *
+     * @param request the HttpServletRequest to check
+     * @return true if the filter should not be applied, false otherwise
+     * @throws ServletException if an error occurs during filtering
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        return !requestMatcher.matches(request);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
