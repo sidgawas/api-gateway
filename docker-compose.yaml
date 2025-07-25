@@ -1,0 +1,13 @@
+services:
+  api-gateway:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    command: ["java", "-jar", "app.jar", "--spring.data.redis.host=redis", "--spring.data.redis.port=6379",
+              "--spring.data.redis.databasee=0", "--application.maxReqPerMinute=100"]
+  redis:
+    image: redis:8.0.2-alpine
+    ports:
+      - "6379:6379"
