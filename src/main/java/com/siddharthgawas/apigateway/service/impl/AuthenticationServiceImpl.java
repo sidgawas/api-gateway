@@ -14,6 +14,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * AuthenticationServiceImpl is responsible for handling user authentication and token generation.
+ * It implements the AuthenticationService interface to provide custom authentication logic.
+ */
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {
 
@@ -36,6 +40,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     }
 
+    /**
+     * Authenticates a user with the provided username and password.
+     * If the credentials are valid, it generates access and refresh tokens.
+     *
+     * @param username the username of the user
+     * @param password the password of the user
+     * @return TokenDetails containing access and refresh tokens
+     * @throws AccessDeniedException if the username or password is invalid
+     */
     @Override
     public TokenDetails authenticate(final String username, final String password) {
         var user = this.users.get(username);
@@ -47,6 +60,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return new TokenDetails(accessToken, refreshToken);
     }
 
+    /**
+     * Refreshes the access token using the provided refresh token.
+     * Validates the refresh token and generates a new access token if valid.
+     *
+     * @param refreshToken the refresh token to validate and use for generating a new access token
+     * @return TokenDetails containing the new access token and a new refresh token
+     * @throws AccessDeniedException if the refresh token is invalid or no user is found
+     */
     @Override
     public TokenDetails refreshAccessToken(final String refreshToken) {
         var isValid = this.jwtService.validateToken(refreshToken);

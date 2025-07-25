@@ -8,6 +8,12 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 import java.util.List;
 
+/**
+ * TokenBucketRateLimitStrategy implements a token bucket algorithm for rate limiting.
+ * <p>
+ * This strategy uses Redis to manage the token count and refill time, allowing for
+ * a specified number of requests per minute.
+ */
 @Slf4j
 public class TokenBucketRateLimitStrategy implements RateLimitStrategy {
 
@@ -41,6 +47,12 @@ public class TokenBucketRateLimitStrategy implements RateLimitStrategy {
         this.maxTokenPerMinute = maxTokenPerMinute;
     }
 
+    /**
+     * Checks if the quota is exceeded for the given rate limit properties.
+     *
+     * @param rateLimitProps The properties containing the key and request path for rate limiting.
+     * @return true if the quota is exceeded, false otherwise.
+     */
     @Override
     public Boolean isQuotaExceeded(final RateLimitProps rateLimitProps) {
         final String key = rateLimitProps.getKey() + ":" + rateLimitProps.getRequestPath();

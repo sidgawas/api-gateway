@@ -36,6 +36,12 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+/**
+ * Security configuration for the API Gateway.
+ * <p>
+ * This class configures security settings, including authentication and authorization,
+ * using JWT tokens and Redis for rate limiting.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
@@ -43,6 +49,12 @@ public class SecurityConfiguration {
     @Autowired
     private ApplicationProperties applicationProperties;
 
+    /**
+     * Request matcher for unauthenticated requests.
+     * <p>
+     * This matcher allows access to the token endpoint, token refresh endpoint, and error endpoint
+     * without authentication.
+     */
     private final RequestMatcher unauthenticatedRequestMatcher = new OrRequestMatcher(
             PathPatternRequestMatcher.withDefaults()
                     .matcher(AuthenticationController.TOKEN_ENDPOINT),
@@ -52,11 +64,25 @@ public class SecurityConfiguration {
                     .matcher("/error")
     );
 
+    /**
+     * Password encoder bean for encoding passwords.
+     * <p>
+     * This bean uses BCrypt for password encoding, which is a strong hashing algorithm.
+     *
+     * @return the password encoder
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Authentication provider for JWT authentication.
+     * <p>
+     * This bean is responsible for authenticating users based on JWT tokens.
+     *
+     * @return the JWT authentication provider
+     */
     @Bean
     public AuthenticationManager authenticationManager(final JWTAuthenticationProvider authenticationProvider) {
         final var providerManager = new ProviderManager(authenticationProvider);
@@ -64,6 +90,18 @@ public class SecurityConfiguration {
         return providerManager;
     }
 
+    /**
+     * Security filter chain bean for configuring security settings.
+     * <p>
+     * This method configures HTTP security, including CSRF protection, session management,
+     * exception handling, and filters for JWT authentication and rate limiting.
+     *
+     * @param http the HttpSecurity object
+     * @param redisTemplate the RedisTemplate for rate limiting
+     * @param authenticationManager the authentication manager
+     * @return the configured SecurityFilterChain
+     * @throws Exception if an error occurs during configuration
+     */
     @Bean
     public SecurityFilterChain filterChain(final HttpSecurity http,
                                            final RedisTemplate<String, Object> redisTemplate,
@@ -89,6 +127,14 @@ public class SecurityConfiguration {
         return http.build();
     }
 
+    /**
+     * JWT authentication filter bean.
+     * <p>
+     * This filter intercepts requests to authenticate users based on JWT tokens.
+     *
+     * @param authenticationManager the authentication manager
+     * @return the JWT authentication filter
+     */
     private JwtAuthenticationFilter jwtAuthenticationFilter(final AuthenticationManager authenticationManager) {
         final var filter = new JwtAuthenticationFilter(
                 new NegatedRequestMatcher(unauthenticatedRequestMatcher),
@@ -98,16 +144,39 @@ public class SecurityConfiguration {
         return filter;
     }
 
+    /**
+     * Rate limiter filter for authenticated requests.
+     * <p>
+     * This filter applies rate limiting to authenticated requests using a token bucket strategy.
+     *
+     * @param redisTemplate the RedisTemplate for rate limiting
+     * @return the rate limiter filter for authenticated requests
+     */
     private RateLimiterFilter getRequestRateLimiterForAuthenticatedRequests(final RedisTemplate<String, Object> redisTemplate) {
         return new RateLimiterFilter(getTokenRateLimitStrategy(redisTemplate),
                 new NegatedRequestMatcher(unauthenticatedRequestMatcher),
                 getUserIDKeyExtractor());
     }
 
+    /**
+     * Rate limiter filter for unauthenticated requests.
+     * <p>
+     * This filter applies rate limiting to unauthenticated requests using a token bucket strategy.
+     *
+     * @param redisTemplate the RedisTemplate for rate limiting
+     * @return the rate limiter filter for unauthenticated requests
+     */
     private RateLimiterFilter getRequestRateLimiterForUnauthenticatedRequests(final RedisTemplate<String, Object> redisTemplate) {
         return new RateLimiterFilter(getTokenRateLimitStrategy(redisTemplate), unauthenticatedRequestMatcher);
     }
 
+    /**
+     * Extracts the user ID from the security context for rate limiting.
+     * <p>
+     * This method uses a custom key extractor to retrieve the user ID from the security context.
+     *
+     * @return a function that extracts the user ID from the HttpServletRequest
+     */
     private Function<HttpServletRequest, String> getUserIDKeyExtractor() {
         final var securityContextRepository = new RequestAttributeSecurityContextRepository();
         // Use a custom key extractor to get the user-id from the security context
@@ -119,6 +188,14 @@ public class SecurityConfiguration {
                 .orElse(null);
     }
 
+    /**
+     * Token bucket rate limit strategy for Redis.
+     * <p>
+     * This method creates a token bucket rate limit strategy using Redis to manage request limits.
+     *
+     * @param redisTemplate the RedisTemplate for rate limiting
+     * @return the token bucket rate limit strategy
+     */
     private RateLimitStrategy getTokenRateLimitStrategy(final RedisTemplate<String, Object> redisTemplate) {
         return new TokenBucketRateLimitStrategy(redisTemplate, applicationProperties.getMaxReqPerMinute());
     }

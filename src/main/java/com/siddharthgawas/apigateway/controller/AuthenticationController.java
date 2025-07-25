@@ -13,6 +13,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
+/**
+ * Controller for handling authentication-related requests.
+ * <p>
+ * This controller provides endpoints for generating and refreshing authentication tokens.
+ */
 @RestController
 public class AuthenticationController {
 
@@ -30,6 +35,15 @@ public class AuthenticationController {
         this.authenticationService = authenticationService;
     }
 
+    /**
+     * Endpoint to generate a new authentication token.
+     * <p>
+     * This endpoint accepts a username and password, authenticates the user, and returns a token.
+     *
+     * @param username the username of the user
+     * @param password the password of the user
+     * @return a ResponseEntity containing the generated token details
+     */
     @PostMapping(TOKEN_ENDPOINT)
     public ResponseEntity<TokenDetails> generateToken(@RequestParam String username,
                                                       @RequestParam String password) {
@@ -41,6 +55,15 @@ public class AuthenticationController {
                 .body(tokenDetails);
     }
 
+    /**
+     * Endpoint to refresh an existing authentication token.
+     * <p>
+     * This endpoint accepts a refresh token and returns a new access token.
+     *
+     * @param request the request containing the refresh token
+     * @param refreshToken the refresh token from the cookie
+     * @return a ResponseEntity containing the refreshed token details
+     */
     @PostMapping(TOKEN_REFRESH_ENDPOINT)
     public ResponseEntity<TokenDetails> refreshToken(@RequestBody(required = false) TokenRefreshRequest request,
                                                      @CookieValue(REFRESH_TOKEN_COOKIE_NAME) String refreshToken) {
@@ -53,6 +76,14 @@ public class AuthenticationController {
                 .body(tokenResponse);
     }
 
+    /**
+     * Creates a response cookie for the refresh token.
+     * <p>
+     * This method creates a secure, HTTP-only cookie for the refresh token.
+     *
+     * @param tokenDetails the token details containing the refresh token
+     * @return a ResponseCookie for the refresh token
+     */
     private ResponseCookie getResponseCookie(TokenDetails tokenDetails) {
         return ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, tokenDetails.refreshToken())
                 .httpOnly(true)

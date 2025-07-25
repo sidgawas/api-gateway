@@ -5,6 +5,12 @@ import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Application properties for the API Gateway.
+ * <p>
+ * This class is used to bind properties prefixed with "application" from the
+ * application configuration file (e.g., application.yml or application.properties).
+ */
 @ConfigurationProperties(prefix = "application")
 @Setter
 @Getter

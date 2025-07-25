@@ -7,6 +7,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.List;
 
+/**
+ * JWTAuthentication represents an authentication token that contains a JWT token.
+ * It extends AbstractAuthenticationToken to provide the necessary methods for
+ * authentication in Spring Security.
+ */
 public class JWTAuthentication extends AbstractAuthenticationToken {
 
     private final String token;

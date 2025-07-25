@@ -47,14 +47,10 @@ public class JWTServiceImpl implements JWTService {
     @Override
     public String generateRefreshToken(UserDetails userDetails) {
         final var currentDate = new Date();
-        final var accessTokenExpirationDate = new Date(currentDate.getTime() +
-                applicationProperties.getJwtAccessTokenExpirationMs());
         final var expirationDate = new Date(currentDate.getTime() + applicationProperties.getJwtRefreshTokenExpirationMs());
-        final var notBeforeDate = new Date(accessTokenExpirationDate.getTime() - 60*1000*5);
         return Jwts.builder().subject(userDetails.getUsername())
                 .issuedAt(currentDate)
                 .id(UUID.randomUUID().toString())
-                .notBefore(notBeforeDate)
                 .issuer(applicationProperties.getJwtIssuer())
                 .expiration(expirationDate)
                 .signWith(this.secretKey)

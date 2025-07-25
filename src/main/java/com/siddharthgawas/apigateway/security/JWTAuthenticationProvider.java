@@ -12,6 +12,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
+/**
+ * JWTAuthenticationProvider is responsible for authenticating JWT tokens.
+ * It implements the AuthenticationProvider interface to provide custom authentication logic.
+ */
 @Component
 @Slf4j
 public class JWTAuthenticationProvider implements AuthenticationProvider {
@@ -23,6 +27,14 @@ public class JWTAuthenticationProvider implements AuthenticationProvider {
         this.jwtService = jwtService;
     }
 
+    /**
+     * Authenticates the provided JWTAuthentication object.
+     * It checks if the token is valid and retrieves the user details from the token.
+     *
+     * @param authentication the JWTAuthentication object containing the token
+     * @return an authenticated JWTAuthentication object with user details
+     * @throws AuthenticationServiceException if the token is invalid or no user is found
+     */
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         if (authentication instanceof JWTAuthentication jwtAuthentication) {
@@ -44,6 +56,12 @@ public class JWTAuthenticationProvider implements AuthenticationProvider {
         return authentication;
     }
 
+    /**
+     * Indicates whether this provider supports the given authentication type.
+     *
+     * @param authentication the class of the authentication object
+     * @return true if the provider supports JWTAuthentication, false otherwise
+     */
     @Override
     public boolean supports(Class<?> authentication) {
         return JWTAuthentication.class.equals(authentication);

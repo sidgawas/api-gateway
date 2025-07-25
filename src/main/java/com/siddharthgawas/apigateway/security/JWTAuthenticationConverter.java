@@ -7,6 +7,10 @@ import org.springframework.security.web.authentication.AuthenticationConverter;
 import org.springframework.util.StringUtils;
 
 
+/**
+ * JWTAuthenticationConverter is responsible for converting an HTTP request into a JWTAuthentication object.
+ * It extracts the JWT token from the "Authorization" header of the request.
+ */
 public class JWTAuthenticationConverter implements AuthenticationConverter {
     @Override
     public Authentication convert(HttpServletRequest request) {

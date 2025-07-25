@@ -7,6 +7,11 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+/**
+ * Configuration class for Redis.
+ * <p>
+ * This class sets up a RedisTemplate for serializing keys as strings and values as JSON.
+ */
 @Configuration
 public class RedisConfiguration {
 
